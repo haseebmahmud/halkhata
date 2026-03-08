@@ -1,0 +1,22 @@
+# R-specific
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+.Rapp.history
+.DS_Store
+
+# Package-specific
+src/*.o
+src/*.so
+src/*.dll
+R/RcppExports.R
+NAMESPACE
+
+# App-specific
+*.db
+attachments/
+my_attachments/
+*.xlsx
+
+.Rproj.user

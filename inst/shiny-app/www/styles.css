@@ -1,0 +1,137 @@
+/* Custom CSS for Accounting App */
+
+/* General styling */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Value boxes */
+.small-box {
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.small-box.bg-green {
+  background-color: #28a745 !important;
+}
+
+.small-box.bg-red {
+  background-color: #dc3545 !important;
+}
+
+.small-box.bg-blue {
+  background-color: #007bff !important;
+}
+
+/* Transaction form */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-control {
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+}
+
+.form-control:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+/* Buttons */
+.btn {
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: 500;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
+}
+
+.btn-success {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+
+.btn-success:hover {
+  background-color: #218838;
+  border-color: #218838;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+/* Data table styling */
+.dataTables_wrapper {
+  padding: 20px;
+}
+
+/* Transaction type badges */
+.badge-inflow {
+  background-color: #28a745;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.badge-outflow {
+  background-color: #dc3545;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* Box styling */
+.box {
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.box-header {
+  border-bottom: 1px solid #f4f4f4;
+  padding: 15px;
+}
+
+.box-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* File upload area */
+.file-upload-area {
+  border: 2px dashed #ced4da;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  background-color: #f8f9fa;
+  transition: all 0.3s ease;
+}
+
+.file-upload-area:hover {
+  border-color: #007bff;
+  background-color: #e7f3ff;
+}
+
+/* Charts */
+.plotly {
+  border-radius: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .small-box {
+    margin-bottom: 15px;
+  }
+}
