@@ -16,7 +16,7 @@ ui <- dashboardPage(
   dashboardBody(
     tabItems(
       tabItem(tabName = "dashboard",
-        h2("Financial Dashboard"),
+        h2("Halkhata Dashboard"),
         fluidRow(
           valueBoxOutput("total_inflow"),
           valueBoxOutput("total_outflow"),
@@ -108,7 +108,7 @@ ui <- dashboardPage(
             # Dashboard tab
             tabItem(
                 tabName = "dashboard",
-                h2("Financial Dashboard"),
+                h2("Halkhata Dashboard"),
                 fluidRow(
                     box(
                         width = 12,
