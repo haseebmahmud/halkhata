@@ -2,8 +2,10 @@
 % Please edit documentation in R/run_app.R
 \name{run_accounting_app}
 \alias{run_accounting_app}
-\title{Run Accounting App}
+\title{Run the Halkhata Accounting App}
 \usage{
+run_accounting_app(db_path = "accounting.db", attachments_dir = "attachments")
+
 run_accounting_app(db_path = "accounting.db", attachments_dir = "attachments")
 }
 \arguments{

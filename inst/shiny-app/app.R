@@ -4,40 +4,44 @@ library(DT)
 library(plotly)
 
 ui <- dashboardPage(
-  dashboardHeader(title = "halkhata"),
-  dashboardSidebar(
-    sidebarMenu(
-      menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
-      menuItem("Add Transaction", tabName = "add_transaction", icon = icon("plus")),
-      menuItem("View Transactions", tabName = "view_transactions", icon = icon("table")),
-      menuItem("Reports", tabName = "reports", icon = icon("chart-bar"))
-    )
-  ),
-  dashboardBody(
-    tabItems(
-      tabItem(tabName = "dashboard",
-        h2("Halkhata Dashboard"),
-        fluidRow(
-          valueBoxOutput("total_inflow"),
-          valueBoxOutput("total_outflow"),
-          valueBoxOutput("net_balance")
+    dashboardHeader(title = "halkhata"),
+    dashboardSidebar(
+        sidebarMenu(
+            menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
+            menuItem("Add Transaction", tabName = "add_transaction", icon = icon("plus")),
+            menuItem("View Transactions", tabName = "view_transactions", icon = icon("table")),
+            menuItem("Reports", tabName = "reports", icon = icon("chart-bar"))
         )
-      ),
-      tabItem(tabName = "add_transaction",
-        h2("Add New Transaction")
-      ),
-      tabItem(tabName = "view_transactions",
-        h2("Transaction History")
-      ),
-      tabItem(tabName = "reports",
-        h2("Financial Reports")
-      )
+    ),
+    dashboardBody(
+        tabItems(
+            tabItem(
+                tabName = "dashboard",
+                h2("Halkhata Dashboard"),
+                fluidRow(
+                    valueBoxOutput("total_inflow"),
+                    valueBoxOutput("total_outflow"),
+                    valueBoxOutput("net_balance")
+                )
+            ),
+            tabItem(
+                tabName = "add_transaction",
+                h2("Add New Transaction")
+            ),
+            tabItem(
+                tabName = "view_transactions",
+                h2("Transaction History")
+            ),
+            tabItem(
+                tabName = "reports",
+                h2("Financial Reports")
+            )
+        )
     )
-  )
 )
 
 server <- function(input, output, session) {
-  # Placeholder for server logic
+    # Placeholder for server logic
 }
 
 shinyApp(ui, server)
@@ -247,7 +251,7 @@ ui <- dashboardPage(
                     box(
                         width = 12,
                         dateRangeInput("report_date_range", "Select Date Range:",
-                            start = Sys.Date() - 365, end = Sys.Date()
+                            start = floor_date(Sys.Date(), "year"), end = Sys.Date()
                         ),
                         selectInput("report_period", "Aggregation Period:",
                             choices = c(
@@ -273,6 +277,13 @@ ui <- dashboardPage(
                         width = 12, title = "Category Breakdown",
                         status = "info", solidHeader = TRUE,
                         DTOutput("category_breakdown_table")
+                    )
+                ),
+                fluidRow(
+                    box(
+                        width = 12, title = "Event Breakdown",
+                        status = "warning", solidHeader = TRUE,
+                        DTOutput("event_breakdown_table")
                     )
                 )
             )
@@ -466,17 +477,17 @@ server <- function(input, output, session) {
 
     output$total_inflow_box <- renderValueBox({
         total <- sum(dashboard_data()$amount[dashboard_data()$type == "Inflow"], na.rm = TRUE)
-        valueBox(sprintf("$%.2f", total), "Total Inflows", icon = icon("arrow-up"), color = "green")
+        valueBox(sprintf("€%.2f", total), "Total Inflows", icon = icon("arrow-up"), color = "green")
     })
 
     output$total_outflow_box <- renderValueBox({
         total <- sum(dashboard_data()$amount[dashboard_data()$type == "Outflow"], na.rm = TRUE)
-        valueBox(sprintf("$%.2f", total), "Total Outflows", icon = icon("arrow-down"), color = "red")
+        valueBox(sprintf("€%.2f", total), "Total Outflows", icon = icon("arrow-down"), color = "red")
     })
 
     output$balance_box <- renderValueBox({
         balance <- halkhata::calculate_balance(dashboard_data())
-        valueBox(sprintf("$%.2f", balance), "Net Balance",
+        valueBox(sprintf("€%.2f", balance), "Net Balance",
             icon  = icon("balance-scale"),
             color = if (balance >= 0) "blue" else "red"
         )
@@ -700,6 +711,7 @@ server <- function(input, output, session) {
     # ── Reports ────────────────────────────────────────────────────────────────
     report_data <- reactive({
         input$generate_report
+        rv$refresh_trigger
         con <- get_con()
         trans <- halkhata::get_transactions(con,
             start_date = input$report_date_range[1],
@@ -715,8 +727,8 @@ server <- function(input, output, session) {
             return(datatable(data.frame()))
         }
         summary <- halkhata::get_periodic_summary(trans, input$report_period)
-        datatable(summary, options = list(pageLength = 25), rownames = FALSE) %>%
-            formatCurrency(c("inflows", "outflows", "balance"), "$")
+        datatable(summary, options = list(pageLength = 25), rownames = FALSE, colnames = c("Period", "Inflows", "Outflows", "Balance")) %>%
+            formatCurrency(c("inflows", "outflows", "balance"), "€")
     })
 
     output$category_breakdown_table <- renderDT({
@@ -725,8 +737,18 @@ server <- function(input, output, session) {
             return(datatable(data.frame()))
         }
         breakdown <- halkhata::get_category_breakdown(trans)
-        datatable(breakdown, options = list(pageLength = 25), rownames = FALSE) %>%
-            formatCurrency("total", "$")
+        datatable(breakdown, options = list(pageLength = 25), rownames = FALSE, colnames = c("Category", "Type", "Total", "Count")) %>%
+            formatCurrency("total", "€")
+    })
+
+    output$event_breakdown_table <- renderDT({
+        trans <- report_data()
+        if (nrow(trans) == 0) {
+            return(datatable(data.frame()))
+        }
+        breakdown <- halkhata::get_event_breakdown(trans)
+        datatable(breakdown, options = list(pageLength = 25), rownames = FALSE, colnames = c("Event", "Inflows", "Outflows", "Balance")) %>%
+            formatCurrency(c("inflows", "outflows", "balance"), "€")
     })
 }
 

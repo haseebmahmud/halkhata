@@ -1,5 +1,5 @@
 # Suppress R CMD check warnings for dplyr NSE
-utils::globalVariables(c("amount", "type", "period", "inflows", "outflows", "category", "total"))
+utils::globalVariables(c("amount", "type", "period", "inflows", "outflows", "category", "total", "event", "balance"))
 
 #' Calculate Balance
 #'
@@ -95,6 +95,46 @@ get_category_breakdown <- function(transactions, type = NULL) {
             .groups = "drop"
         ) |>
         dplyr::arrange(dplyr::desc(total))
+
+    as.data.frame(breakdown)
+}
+
+#' Get Event Breakdown
+#'
+#' Summarize transactions by event.
+#'
+#' @param transactions Data frame of transactions
+#' @param type Filter by type ("inflow", "outflow", or NULL for all)
+#' @return Data frame with event, inflows, outflows, and balance
+#' @export
+get_event_breakdown <- function(transactions, type = NULL) {
+    if (nrow(transactions) == 0) {
+        return(data.frame(
+            event = character(0),
+            inflows = numeric(0),
+            outflows = numeric(0),
+            balance = numeric(0)
+        ))
+    }
+
+    # Filter by type if specified
+    if (!is.null(type)) {
+        transactions <- transactions[transactions$type == type, ]
+    }
+
+    # Handle NA events
+    transactions$event[is.na(transactions$event) | transactions$event == ""] <- "Not event specific"
+
+    # Aggregate by event
+    breakdown <- transactions |>
+        dplyr::group_by(event) |>
+        dplyr::summarise(
+            inflows = sum(amount[type == "Inflow"], na.rm = TRUE),
+            outflows = sum(amount[type == "Outflow"], na.rm = TRUE),
+            .groups = "drop"
+        ) |>
+        dplyr::mutate(balance = inflows - outflows) |>
+        dplyr::arrange(dplyr::desc(inflows + outflows))
 
     as.data.frame(breakdown)
 }

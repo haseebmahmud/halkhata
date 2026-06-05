@@ -2,41 +2,14 @@ Package: halkhata
 Title: Small Business Accounting App
 Version: 0.1.0
 Authors@R: 
-    person("Haseeb", "Mahmud", , "haseeb@example.com", role = c("aut", "cre"))
+    person("Haseeb", "Mahmud", , "haseeb.mahmud@gmail.com", role = c("aut", "cre"))
 Description: A comprehensive R Shiny application for small business accounting. Track cash inflows and outflows, attach bills and receipts, generate periodic reports, and export data to Excel for tax filing.
-License: MIT + file LICENSE
+License: MIT + file LICENSE.md
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
-Imports: 
-    shiny,
-    shinydashboard,
-    DBI,
-    RSQLite,
-    dplyr,
-    lubridate,
-    openxlsx,
-    DT,
-    plotly,
-    RColorBrewer
-Suggests: 
-    testthat (>= 3.0.0)
-Config/testthat/edition: 3
-
-Package: halkhata
-Title: Small business/Verein Accounting Shiny App
-Version: 0.0.0.9000
-Authors@R: 
-    person("Haseeb", "Mahmud", , "haseeb.mahmud@gmail.com", role = c("aut", "cre"))
-Description: A comprehensive Shiny application for small business accounting.
-    Track cash inflows and outflows, attach bills and receipts, generate
-    periodic reports, and export data to Excel for tax filing.
-License: MIT + file LICENSE.md
-Encoding: UTF-8
-Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
-Imports:
+Imports: 
     shiny (>= 1.7.0),
     shinydashboard (>= 0.7.2),
     DBI (>= 1.1.0),
@@ -45,4 +18,8 @@ Imports:
     lubridate (>= 1.9.0),
     openxlsx (>= 4.2.0),
     DT (>= 0.20),
-    plotly (>= 4.10.0)
+    plotly (>= 4.10.0),
+    RColorBrewer
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
