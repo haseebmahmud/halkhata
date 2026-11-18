@@ -1,3 +1,5 @@
 ^LICENSE\.md$
 ^halkhata\.Rproj$
 ^\.Rproj\.user$
+^.*\.db$
+^inst/shiny-app/attachments$

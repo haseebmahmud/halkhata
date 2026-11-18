@@ -18,3 +18,8 @@ NAMESPACE
 attachments/
 my_attachments/
 *.xlsx
+
+# Electron
+node_modules/
+dist/
+build/

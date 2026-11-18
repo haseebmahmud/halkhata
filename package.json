@@ -1,0 +1,68 @@
+{
+  "name": "halkhata-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "author": "Haseeb Mahmud",
+  "description": "Electron desktop shell for the Halkhata accounting app",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "bundle:r": "Rscript --vanilla electron/bundle-r.R .",
+    "dist:mac": "npm run bundle:r && electron-builder --mac dir --arm64 && bash electron/build-macos-installer.sh"
+  },
+  "devDependencies": {
+    "electron": "^45.3.4",
+    "electron-builder": "^26.18.0"
+  },
+  "allowScripts": {
+    "electron@45.3.4": true
+  },
+  "build": {
+    "appId": "com.halkhata.desktop",
+    "productName": "Halkhata",
+    "asar": true,
+    "files": [
+      "electron/main.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/electron-runtime/R-library",
+        "to": "R-library"
+      },
+      {
+        "from": "build/electron-runtime/shiny-app",
+        "to": "shiny-app"
+      },
+      {
+        "from": "electron/start-shiny.R",
+        "to": "start-shiny.R"
+      }
+    ],
+    "mac": {
+      "target": "dir",
+      "identity": null,
+      "category": "public.app-category.finance",
+      "extraResources": [
+        {
+          "from": "build/electron-runtime/r-runtime.json",
+          "to": "r-runtime.json"
+        }
+      ]
+    },
+    "win": {
+      "target": "nsis",
+      "extraResources": [
+        {
+          "from": "build/electron-runtime/R",
+          "to": "R"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

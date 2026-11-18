@@ -53,6 +53,41 @@ run_accounting_app(
 )
 ```
 
+### Launch in an Electron Desktop Window
+
+The Electron shell runs the Shiny app on a local-only server and displays it in
+a desktop window. This development setup requires R and the `halkhata` package
+to be installed:
+
+```sh
+R CMD INSTALL .
+npm install
+npm start
+```
+
+The desktop app stores its SQLite database and attachments in Electron's
+per-user application data directory. If `Rscript` is not on `PATH`, set
+`RSCRIPT_PATH` to its full path before running `npm start`.
+
+### Build a Standalone Installer
+
+The standalone build bundles the current platform's R runtime and package
+dependencies. On an Apple Silicon Mac, build a `.dmg` with:
+
+```sh
+npm run dist:mac
+```
+
+The macOS DMG contains a `.pkg` installer. It installs the app in
+`/Applications` and activates its bundled R under `/Library/Frameworks`
+(administrator approval is required; this changes the system's active R
+framework version). Windows `.exe` installers are built by the **Desktop installers**
+GitHub Actions workflow on a Windows runner and include a private Windows R
+runtime. Workflow artifacts contain the installers for both platforms.
+
+Installers are unsigned, so macOS Gatekeeper and Windows SmartScreen may show
+warnings.
+
 ### Using the App
 
 #### 1. Dashboard
