@@ -10,7 +10,7 @@ A comprehensive R Shiny application for small business accounting. Track cash in
 - **Interactive Dashboard**: Visualize financial data with charts and summary metrics
 - **Periodic Reports**: Generate daily, weekly, monthly, or yearly financial summaries
 - **Category Breakdown**: Analyze spending and income by category
-- **Excel Export**: Export transaction data to formatted Excel workbooks for tax filing
+- **Excel Export**: Export transaction records and summaries as a reviewable workbook
 - **SQLite Database**: Lightweight, file-based data storage with no server required
 
 ## Installation
@@ -18,7 +18,10 @@ A comprehensive R Shiny application for small business accounting. Track cash in
 ### Install Required Packages
 
 ```r
-# Install from CRAN (if available) or from source
+user_library <- Sys.getenv("R_LIBS_USER")
+dir.create(user_library, recursive = TRUE, showWarnings = FALSE)
+
+# Install dependencies in the per-user library (no administrator access needed)
 install.packages(c(
   "shiny",
   "shinydashboard",
@@ -30,10 +33,7 @@ install.packages(c(
   "DT",
   "plotly",
   "RColorBrewer"
-))
-
-# Install halkhata package (from local directory)
-devtools::install()
+), lib = user_library, repos = "https://cloud.r-project.org")
 ```
 
 ## Usage
@@ -56,11 +56,13 @@ run_accounting_app(
 ### Launch in an Electron Desktop Window
 
 The Electron shell runs the Shiny app on a local-only server and displays it in
-a desktop window. This development setup requires R and the `halkhata` package
-to be installed:
+a desktop window. R and the `halkhata` package must be installed on the system
+along with the packages listed under
+[Install Required Packages](#install-required-packages) before running the
+desktop app:
 
 ```sh
-R CMD INSTALL .
+R CMD INSTALL --library="$(Rscript --vanilla -e 'cat(Sys.getenv("R_LIBS_USER"))')" .
 npm install
 npm start
 ```
@@ -69,21 +71,32 @@ The desktop app stores its SQLite database and attachments in Electron's
 per-user application data directory. If `Rscript` is not on `PATH`, set
 `RSCRIPT_PATH` to its full path before running `npm start`.
 
+#### Data Storage and Backups
+
+On macOS, the data directory is normally
+`~/Library/Application Support/Halkhata/`. It contains `accounting.db` and the
+`attachments/` folder. The exact directory is determined by Electron's
+`app.getPath("userData")`.
+
+Back up the entire data directory, not just the database. Time Machine can back
+it up; check that the directory is included. For a manual backup, quit Halkhata
+first, then copy the entire directory to an encrypted external drive. Keep
+dated backups and periodically verify that a backup can be opened. Excel
+exports are useful reports, but they are not complete, restorable backups.
+
 ### Build a Standalone Installer
 
-The standalone build bundles the current platform's R runtime and package
-dependencies. On an Apple Silicon Mac, build a `.dmg` with:
+The desktop installer does not bundle R, `halkhata`, or its R dependencies.
+Users must install them separately before launching the app. On an Apple Silicon
+Mac, build a `.dmg` with:
 
 ```sh
 npm run dist:mac
 ```
 
-The macOS DMG contains a `.pkg` installer. It installs the app in
-`/Applications` and activates its bundled R under `/Library/Frameworks`
-(administrator approval is required; this changes the system's active R
-framework version). Windows `.exe` installers are built by the **Desktop installers**
-GitHub Actions workflow on a Windows runner and include a private Windows R
-runtime. Workflow artifacts contain the installers for both platforms.
+The macOS DMG contains the app. Windows `.exe` installers are built by the
+**Desktop installers** GitHub Actions workflow on a Windows runner. Workflow
+artifacts contain the installers for both platforms.
 
 Installers are unsigned, so macOS Gatekeeper and Windows SmartScreen may show
 warnings.
@@ -116,11 +129,19 @@ warnings.
 
 The Excel export feature creates a formatted workbook with three sheets:
 
-1. **Transactions**: Complete transaction history with all details
-2. **Summary**: Key metrics including total inflows, outflows, and balance
-3. **Category Breakdown**: Spending and income analysis by category
+1. **EÜR-Übersicht**: Recorded income, expenses, and preliminary surplus/loss
+2. **Kategorien**: Recorded totals and transaction counts by category
+3. **Buchungen**: Chronological transaction details and attached receipt filenames
 
-Perfect for tax filing and financial record-keeping!
+On the Reports page, use **Generate and Save Excel Report** to open a save
+dialog and choose the workbook location. **Update Report** refreshes the
+on-screen summaries.
+
+This workbook is a supporting transaction schedule, **not** the official
+Anlage EÜR and not a substitute for filing it. It does not determine VAT,
+deductibility, private-use shares, depreciation, or other tax adjustments.
+Reconcile the records and transfer the applicable figures to the official
+Anlage EÜR before filing.
 
 ## Database Schema
 

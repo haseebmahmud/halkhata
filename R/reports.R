@@ -141,48 +141,126 @@ get_event_breakdown <- function(transactions, type = NULL) {
 
 #' Prepare Export Data
 #'
-#' Format transaction data for Excel export.
+#' Prepare transaction data for an Excel accounting schedule.
 #'
 #' @param transactions Data frame of transactions
-#' @return List with formatted data frames for export
+#' @return List containing the reporting period, transaction count, summary,
+#'   category breakdown, and transaction detail for export
 #' @export
 prepare_export_data <- function(transactions) {
-    # Main transactions sheet
-    transactions_export <- transactions
-    if (nrow(transactions_export) > 0) {
-        transactions_export$date <- as.Date(transactions_export$date)
-        # Remove internal columns
-        transactions_export <- transactions_export[, c(
-            "id", "date", "type", "amount",
-            "category", "description",
-            "attachment_path"
-        )]
+    dates <- as.Date(transactions$date)
+    type_values <- tolower(as.character(transactions$type))
+    amounts <- as.numeric(transactions$amount)
+    inflows <- sum(amounts[type_values == "inflow"], na.rm = TRUE)
+    outflows <- sum(amounts[type_values == "outflow"], na.rm = TRUE)
+
+    valid_dates <- dates[!is.na(dates)]
+    reporting_period <- if (length(valid_dates) > 0L) {
+        paste(
+            format(min(valid_dates), "%d.%m.%Y"),
+            format(max(valid_dates), "%d.%m.%Y"),
+            sep = " bis "
+        )
+    } else {
+        "Keine Buchungen"
     }
 
-    # Summary sheet
+    transaction_kind <- ifelse(
+        type_values == "inflow", "Einnahme",
+        ifelse(type_values == "outflow", "Ausgabe", as.character(transactions$type))
+    )
+    transactions_export <- data.frame(
+        `Buchungs-ID` = if ("id" %in% names(transactions)) {
+            transactions$id
+        } else {
+            seq_len(nrow(transactions))
+        },
+        Datum = dates,
+        Art = transaction_kind,
+        Kategorie = as.character(transactions$category),
+        Beschreibung = as.character(transactions$description),
+        Veranstaltung = if ("event" %in% names(transactions)) {
+            as.character(transactions$event)
+        } else {
+            rep(NA_character_, nrow(transactions))
+        },
+        `Betrag (EUR)` = amounts,
+        `Belegdatei` = if ("attachment_path" %in% names(transactions)) {
+            attachment_paths <- as.character(transactions$attachment_path)
+            attachment_paths[is.na(attachment_paths) | attachment_paths == ""] <- NA_character_
+            basename(gsub("\\\\", "/", attachment_paths))
+        } else {
+            rep(NA_character_, nrow(transactions))
+        },
+        check.names = FALSE,
+        stringsAsFactors = FALSE
+    )
+    if (nrow(transactions_export) > 0L) {
+        transactions_export <- transactions_export[
+            order(is.na(transactions_export$Datum), transactions_export$Datum,
+                transactions_export$`Buchungs-ID`, na.last = TRUE
+            ),
+            ,
+            drop = FALSE
+        ]
+        rownames(transactions_export) <- NULL
+    }
+
+    category_data <- data.frame(
+        Art = transaction_kind,
+        Kategorie = as.character(transactions$category),
+        Betrag = amounts,
+        stringsAsFactors = FALSE
+    )
+    if (nrow(category_data) > 0L) {
+        category_breakdown <- stats::aggregate(
+            Betrag ~ Art + Kategorie,
+            data = category_data,
+            FUN = sum,
+            na.rm = TRUE
+        )
+        category_counts <- stats::aggregate(
+            Betrag ~ Art + Kategorie,
+            data = category_data,
+            FUN = function(x) length(x)
+        )
+        names(category_breakdown)[names(category_breakdown) == "Betrag"] <- "Summe (EUR)"
+        names(category_counts)[names(category_counts) == "Betrag"] <- "Anzahl Buchungen"
+        category_breakdown <- merge(
+            category_breakdown,
+            category_counts,
+            by = c("Art", "Kategorie"),
+            sort = FALSE
+        )
+        category_breakdown <- category_breakdown[
+            order(category_breakdown$Art, category_breakdown$Kategorie),
+            c("Art", "Kategorie", "Anzahl Buchungen", "Summe (EUR)"),
+            drop = FALSE
+        ]
+    } else {
+        category_breakdown <- data.frame(
+            Art = character(0),
+            Kategorie = character(0),
+            `Anzahl Buchungen` = integer(0),
+            `Summe (EUR)` = numeric(0),
+            check.names = FALSE
+        )
+    }
+
     summary <- data.frame(
-        Metric = c(
-            "Total Inflows", "Total Outflows", "Net Balance",
-            "Number of Transactions", "Date Range"
+        Kennzahl = c(
+            "Betriebseinnahmen (erfasst)",
+            "Betriebsausgaben (erfasst)",
+            "Vorläufiger Überschuss / Verlust"
         ),
-        Value = c(
-            sum(transactions$amount[transactions$type == "Inflow"], na.rm = TRUE),
-            sum(transactions$amount[transactions$type == "Outflow"], na.rm = TRUE),
-            calculate_balance(transactions),
-            nrow(transactions),
-            if (nrow(transactions) > 0) {
-                sprintf("%s to %s", min(transactions$date), max(transactions$date))
-            } else {
-                "No data"
-            }
-        ),
+        `Betrag (EUR)` = c(inflows, outflows, inflows - outflows),
+        check.names = FALSE,
         stringsAsFactors = FALSE
     )
 
-    # Category breakdown
-    category_breakdown <- get_category_breakdown(transactions)
-
     list(
+        reporting_period = reporting_period,
+        transaction_count = nrow(transactions),
         transactions = transactions_export,
         summary = summary,
         category_breakdown = category_breakdown

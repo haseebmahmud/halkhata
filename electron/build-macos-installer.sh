@@ -25,6 +25,12 @@ mkdir -p "$package_root/Applications" \
 ditto "$app_source" "$package_root/Applications/Halkhata.app"
 ditto "$runtime_source" \
   "$package_root/Library/Frameworks/R.framework/Versions/$runtime_version"
+framework_root="$package_root/Library/Frameworks/R.framework"
+ln -s "$runtime_version" "$framework_root/Versions/Current"
+ln -s "Versions/Current/Resources" "$framework_root/Resources"
+ln -s "Versions/Current/R" "$framework_root/R"
+ln -s "Versions/Current/Resources/lib" "$framework_root/Libraries"
+ln -s "Versions/Current/Headers" "$framework_root/Headers"
 mkdir -p "$repo_root/dist"
 
 pkgbuild \

@@ -260,9 +260,15 @@ ui <- dashboardPage(
                             ),
                             selected = "month"
                         ),
-                        actionButton("generate_report", "Generate Report",
+                        actionButton("generate_report", "Update Report",
                             icon = icon("chart-line"), class = "btn-primary"
-                        )
+                        ),
+                        downloadButton(
+                            "export_report_excel",
+                            "Generate and Save Excel Report",
+                            class = "btn-success"
+                        ),
+                        helpText("Choose where to save the generated Excel report.")
                     )
                 ),
                 fluidRow(
@@ -750,6 +756,22 @@ server <- function(input, output, session) {
         datatable(breakdown, options = list(pageLength = 25), rownames = FALSE, colnames = c("Event", "Inflows", "Outflows", "Balance")) %>%
             formatCurrency(c("inflows", "outflows", "balance"), "€")
     })
+
+    output$export_report_excel <- downloadHandler(
+        filename = function() {
+            report_dates <- input$report_date_range
+            paste0(
+                "eur_report_",
+                format(report_dates[1], "%Y%m%d"),
+                "_",
+                format(report_dates[2], "%Y%m%d"),
+                ".xlsx"
+            )
+        },
+        content = function(file) {
+            halkhata::export_to_excel(report_data(), file)
+        }
+    )
 }
 
 # Run the application

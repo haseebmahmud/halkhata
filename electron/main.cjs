@@ -1,11 +1,35 @@
-const { app, BrowserWindow, dialog } = require("electron");
+const { app, BrowserWindow, dialog, session } = require("electron");
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
 const net = require("node:net");
 const path = require("node:path");
 
+const maxStartupOutputLength = 8_000;
 let rProcess;
 let shinyUrl;
+let mainWindow;
+
+function configureExcelSaveDialog() {
+  session.defaultSession.on("will-download", (_event, item) => {
+    if (path.extname(item.getFilename()).toLowerCase() !== ".xlsx") {
+      return;
+    }
+
+    item.setSaveDialogOptions({
+      title: "Save Excel report",
+      defaultPath: path.join(app.getPath("documents"), item.getFilename()),
+      filters: [{ name: "Excel Workbook", extensions: ["xlsx"] }],
+    });
+    item.once("done", (_event, state) => {
+      if (state === "interrupted") {
+        dialog.showErrorBox(
+          "Excel report not saved",
+          "The download was interrupted. Please generate the report again.",
+        );
+      }
+    });
+  });
+}
 
 function findAvailablePort() {
   return new Promise((resolve, reject) => {
@@ -37,7 +61,15 @@ async function waitForShiny(port) {
       throw rProcess.spawnError;
     }
     if (rProcess.exitCode !== null || rProcess.signalCode !== null) {
-      throw new Error("The R process exited before the app was ready.");
+      await rProcess.closePromise;
+      const reason = rProcess.signalCode
+        ? `signal ${rProcess.signalCode}`
+        : `exit code ${rProcess.exitCode}`;
+      const output = rProcess.startupOutput.trim();
+      throw new Error(
+        `The R process exited with ${reason} before the app was ready.` +
+          (output ? `\n\nR startup output:\n${output}` : ""),
+      );
     }
 
     try {
@@ -65,24 +97,12 @@ async function startApp() {
   const appDirectory = app.isPackaged
     ? path.join(resourcesDirectory, "shiny-app")
     : path.join(projectRoot, "inst", "shiny-app");
-  const rLibrary = app.isPackaged
-    ? path.join(resourcesDirectory, "R-library")
-    : "";
-  const macRuntime = app.isPackaged && process.platform === "darwin"
-    ? JSON.parse(
-        fs.readFileSync(path.join(resourcesDirectory, "r-runtime.json"), "utf8"),
-      )
-    : null;
-  const bundledRHome = app.isPackaged
-    ? macRuntime?.rHome || path.join(resourcesDirectory, "R")
-    : null;
-  const bundledRscript =
-    process.platform === "darwin"
-      ? macRuntime?.rscript
-      : path.join(bundledRHome, "bin", "Rscript.exe");
+  const systemRscript = "/usr/local/bin/Rscript";
   const rscript =
     process.env.RSCRIPT_PATH ||
-    (app.isPackaged ? bundledRscript : "Rscript");
+    (process.platform === "darwin" && fs.existsSync(systemRscript)
+      ? systemRscript
+      : "Rscript");
   const launcher = app.isPackaged
     ? path.join(resourcesDirectory, "start-shiny.R")
     : path.join(__dirname, "start-shiny.R");
@@ -95,40 +115,27 @@ async function startApp() {
       "--vanilla",
       launcher,
       appDirectory,
-      rLibrary,
       databasePath,
       attachmentsDirectory,
       String(port),
     ],
     {
-      stdio: "inherit",
-      env: {
-        ...process.env,
-        ...(bundledRHome
-          ? {
-              R_HOME: bundledRHome,
-              R_LIBS_USER: rLibrary,
-              PATH: [
-                path.join(bundledRHome, "bin"),
-                path.join(bundledRHome, "bin", "x64"),
-                process.env.PATH || "",
-              ].join(path.delimiter),
-              ...(process.platform === "darwin"
-                ? {
-                    DYLD_LIBRARY_PATH: [
-                      path.join(bundledRHome, "lib"),
-                      process.env.DYLD_LIBRARY_PATH || "",
-                    ]
-                      .filter(Boolean)
-                      .join(path.delimiter),
-                  }
-                : {}),
-            }
-          : {}),
-      },
+      stdio: ["ignore", "pipe", "pipe"],
+      env: process.env,
     },
   );
   rProcess.spawnError = null;
+  rProcess.startupOutput = "";
+  const appendStartupOutput = (chunk) => {
+    rProcess.startupOutput = (rProcess.startupOutput + chunk.toString()).slice(
+      -maxStartupOutputLength,
+    );
+  };
+  rProcess.stdout.on("data", appendStartupOutput);
+  rProcess.stderr.on("data", appendStartupOutput);
+  rProcess.closePromise = new Promise((resolve) => {
+    rProcess.once("close", resolve);
+  });
   rProcess.on("error", (error) => {
     rProcess.spawnError = error;
   });
@@ -138,7 +145,7 @@ async function startApp() {
 }
 
 async function openWindow() {
-  const window = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1280,
     height: 900,
     minWidth: 900,
@@ -149,11 +156,15 @@ async function openWindow() {
       sandbox: true,
     },
   });
-  await window.loadURL(shinyUrl);
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
+  await mainWindow.loadURL(shinyUrl);
 }
 
 app.whenReady().then(async () => {
   try {
+    configureExcelSaveDialog();
     await startApp();
   } catch (error) {
     if (rProcess && rProcess.exitCode === null) {
@@ -162,7 +173,7 @@ app.whenReady().then(async () => {
     dialog.showErrorBox(
       "Unable to start Halkhata",
       `${error.message}\n\nMake sure R and the halkhata package are installed. ` +
-        "If Rscript is not on PATH, set the RSCRIPT_PATH environment variable.",
+        "Make sure Rscript is on PATH, or set the RSCRIPT_PATH environment variable.",
     );
     app.quit();
   }

@@ -10,8 +10,9 @@ prepare_export_data(transactions)
 \item{transactions}{Data frame of transactions}
 }
 \value{
-List with formatted data frames for export
+List containing the reporting period, transaction count, summary,
+category breakdown, and transaction detail for export
 }
 \description{
-Format transaction data for Excel export.
+Prepare transaction data for an Excel accounting schedule.
 }

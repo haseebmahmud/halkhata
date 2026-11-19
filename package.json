@@ -7,8 +7,7 @@
   "main": "electron/main.cjs",
   "scripts": {
     "start": "electron .",
-    "bundle:r": "Rscript --vanilla electron/bundle-r.R .",
-    "dist:mac": "npm run bundle:r && electron-builder --mac dir --arm64 && bash electron/build-macos-installer.sh"
+    "dist:mac": "electron-builder --mac dmg --arm64"
   },
   "devDependencies": {
     "electron": "^45.3.4",
@@ -27,11 +26,7 @@
     ],
     "extraResources": [
       {
-        "from": "build/electron-runtime/R-library",
-        "to": "R-library"
-      },
-      {
-        "from": "build/electron-runtime/shiny-app",
+        "from": "inst/shiny-app",
         "to": "shiny-app"
       },
       {
@@ -40,24 +35,12 @@
       }
     ],
     "mac": {
-      "target": "dir",
+      "target": "dmg",
       "identity": null,
-      "category": "public.app-category.finance",
-      "extraResources": [
-        {
-          "from": "build/electron-runtime/r-runtime.json",
-          "to": "r-runtime.json"
-        }
-      ]
+      "category": "public.app-category.finance"
     },
     "win": {
-      "target": "nsis",
-      "extraResources": [
-        {
-          "from": "build/electron-runtime/R",
-          "to": "R"
-        }
-      ]
+      "target": "nsis"
     },
     "nsis": {
       "oneClick": false,

@@ -1,93 +1,161 @@
 #' Export to Excel
 #'
-#' Create a formatted Excel workbook with transaction data.
+#' Create a German-language workbook with an EÜR-oriented summary and detailed
+#' transaction schedule. The workbook is supporting documentation and is not
+#' an official Anlage EÜR.
 #'
 #' @param transactions Data frame of transactions
 #' @param filename Output filename
 #' @return Path to created Excel file
 #' @export
 export_to_excel <- function(transactions, filename = "accounting_report.xlsx") {
-    # Prepare data
     export_data <- prepare_export_data(transactions)
-
-    # Create workbook
     wb <- openxlsx::createWorkbook()
+    header_style <- openxlsx::createStyle(
+        fontColour = "#FFFFFF",
+        fgFill = "#4F81BD",
+        halign = "center",
+        valign = "center",
+        textDecoration = "bold",
+        border = "TopBottomLeftRight",
+        wrapText = TRUE
+    )
+    title_style <- openxlsx::createStyle(
+        fontSize = 14,
+        textDecoration = "bold"
+    )
+    note_style <- openxlsx::createStyle(
+        fontColour = "#666666",
+        textDecoration = "italic",
+        wrapText = TRUE,
+        valign = "top"
+    )
+    currency_style <- openxlsx::createStyle(numFmt = '#,##0.00 [$€-407]')
 
-    # Add Transactions sheet
-    openxlsx::addWorksheet(wb, "Transactions")
-    openxlsx::writeData(wb, "Transactions", export_data$transactions)
+    openxlsx::addWorksheet(wb, "EÜR-Übersicht")
+    openxlsx::writeData(wb, "EÜR-Übersicht", "Einnahmen- und Ausgabenübersicht", startRow = 1)
+    openxlsx::mergeCells(wb, "EÜR-Übersicht", cols = 1:2, rows = 1)
+    openxlsx::addStyle(wb, "EÜR-Übersicht", title_style, rows = 1, cols = 1:2)
+    openxlsx::writeData(
+        wb,
+        "EÜR-Übersicht",
+        data.frame(
+            Angabe = c("Berichtszeitraum", "Anzahl Buchungen", "Erstellt am"),
+            Wert = c(
+                export_data$reporting_period,
+                as.character(export_data$transaction_count),
+                format(Sys.Date(), "%d.%m.%Y")
+            ),
+            stringsAsFactors = FALSE
+        ),
+        startRow = 3
+    )
+    openxlsx::writeData(
+        wb,
+        "EÜR-Übersicht",
+        paste(
+            "Diese Übersicht ist eine Aufstellung der in Halkhata erfassten Buchungen,",
+            "keine amtliche Anlage EÜR und keine steuerliche Prüfung.",
+            "Die Beträge und Kategorien sind nicht auf Umsatzsteuer, Abzugsfähigkeit,",
+            "Privatanteile oder weitere steuerliche Korrekturen geprüft.",
+            "Bitte vor Verwendung mit den Belegen abgleichen und in die amtliche Anlage EÜR übernehmen."
+        ),
+        startRow = 7,
+        colNames = FALSE
+    )
+    openxlsx::mergeCells(wb, "EÜR-Übersicht", cols = 1:2, rows = 7:8)
+    openxlsx::addStyle(wb, "EÜR-Übersicht", note_style, rows = 7:8, cols = 1:2)
+    openxlsx::writeData(
+        wb,
+        "EÜR-Übersicht",
+        export_data$summary,
+        startRow = 10
+    )
+    openxlsx::addStyle(wb, "EÜR-Übersicht", header_style, rows = 10, cols = 1:2)
+    openxlsx::addStyle(
+        wb,
+        "EÜR-Übersicht",
+        currency_style,
+        rows = 11:(10 + nrow(export_data$summary)),
+        cols = 2
+    )
+    openxlsx::setColWidths(wb, "EÜR-Übersicht", cols = 1, widths = 43)
+    openxlsx::setColWidths(wb, "EÜR-Übersicht", cols = 2, widths = 22)
+    openxlsx::freezePane(wb, "EÜR-Übersicht", firstActiveRow = 10)
 
-    # Format transactions sheet
-    if (nrow(export_data$transactions) > 0) {
-        # Header style
-        header_style <- openxlsx::createStyle(
-            fontColour = "#FFFFFF",
-            fgFill = "#4F81BD",
-            halign = "center",
-            valign = "center",
-            textDecoration = "bold",
-            border = "TopBottomLeftRight"
-        )
-        openxlsx::addStyle(wb, "Transactions", header_style,
-            rows = 1,
-            cols = 1:ncol(export_data$transactions), gridExpand = TRUE
-        )
-
-        # Number format for amount
-        amount_col <- which(names(export_data$transactions) == "amount")
-        openxlsx::addStyle(wb, "Transactions",
-            openxlsx::createStyle(numFmt = "#,##0.00"),
-            rows = 2:(nrow(export_data$transactions) + 1),
-            cols = amount_col, gridExpand = TRUE
-        )
-
-        # Date format
-        date_col <- which(names(export_data$transactions) == "date")
-        openxlsx::addStyle(wb, "Transactions",
-            openxlsx::createStyle(numFmt = "yyyy-mm-dd"),
-            rows = 2:(nrow(export_data$transactions) + 1),
-            cols = date_col, gridExpand = TRUE
-        )
-
-        # Auto-width columns
-        openxlsx::setColWidths(wb, "Transactions",
-            cols = 1:ncol(export_data$transactions),
-            widths = "auto"
-        )
-    }
-
-    # Add Summary sheet
-    openxlsx::addWorksheet(wb, "Summary")
-    openxlsx::writeData(wb, "Summary", export_data$summary)
-    openxlsx::addStyle(wb, "Summary", header_style, rows = 1, cols = 1:2, gridExpand = TRUE)
-    openxlsx::setColWidths(wb, "Summary", cols = 1:2, widths = c(25, 20))
-
-    # Add Category Breakdown sheet
-    openxlsx::addWorksheet(wb, "Category Breakdown")
-    openxlsx::writeData(wb, "Category Breakdown", export_data$category_breakdown)
-
+    openxlsx::addWorksheet(wb, "Kategorien")
+    openxlsx::writeData(wb, "Kategorien", export_data$category_breakdown)
+    openxlsx::addStyle(
+        wb,
+        "Kategorien",
+        header_style,
+        rows = 1,
+        cols = 1:ncol(export_data$category_breakdown),
+        gridExpand = TRUE
+    )
     if (nrow(export_data$category_breakdown) > 0) {
-        openxlsx::addStyle(wb, "Category Breakdown", header_style,
-            rows = 1,
-            cols = 1:ncol(export_data$category_breakdown), gridExpand = TRUE
-        )
-
-        # Number format for total
-        total_col <- which(names(export_data$category_breakdown) == "total")
-        openxlsx::addStyle(wb, "Category Breakdown",
-            openxlsx::createStyle(numFmt = "#,##0.00"),
+        openxlsx::addStyle(
+            wb,
+            "Kategorien",
+            currency_style,
             rows = 2:(nrow(export_data$category_breakdown) + 1),
-            cols = total_col, gridExpand = TRUE
+            cols = 4
         )
-
-        openxlsx::setColWidths(wb, "Category Breakdown",
-            cols = 1:ncol(export_data$category_breakdown),
-            widths = "auto"
+        openxlsx::addFilter(
+            wb,
+            "Kategorien",
+            rows = 1,
+            cols = 1:ncol(export_data$category_breakdown)
         )
     }
+    openxlsx::setColWidths(
+        wb,
+        "Kategorien",
+        cols = 1:ncol(export_data$category_breakdown),
+        widths = "auto"
+    )
+    openxlsx::freezePane(wb, "Kategorien", firstActiveRow = 2)
 
-    # Save workbook
+    openxlsx::addWorksheet(wb, "Buchungen")
+    openxlsx::writeData(wb, "Buchungen", export_data$transactions)
+    openxlsx::addStyle(
+        wb,
+        "Buchungen",
+        header_style,
+        rows = 1,
+        cols = 1:ncol(export_data$transactions),
+        gridExpand = TRUE
+    )
+    openxlsx::addFilter(
+        wb,
+        "Buchungen",
+        rows = 1,
+        cols = 1:ncol(export_data$transactions)
+    )
+    if (nrow(export_data$transactions) > 0) {
+        openxlsx::addStyle(
+            wb,
+            "Buchungen",
+            openxlsx::createStyle(numFmt = "dd.mm.yyyy"),
+            rows = 2:(nrow(export_data$transactions) + 1),
+            cols = 2
+        )
+        openxlsx::addStyle(
+            wb,
+            "Buchungen",
+            currency_style,
+            rows = 2:(nrow(export_data$transactions) + 1),
+            cols = 7
+        )
+    }
+    openxlsx::setColWidths(
+        wb,
+        "Buchungen",
+        cols = 1:ncol(export_data$transactions),
+        widths = "auto"
+    )
+    openxlsx::freezePane(wb, "Buchungen", firstActiveRow = 2)
+
     openxlsx::saveWorkbook(wb, filename, overwrite = TRUE)
-
     filename
 }

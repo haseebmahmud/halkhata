@@ -15,5 +15,7 @@ export_to_excel(transactions, filename = "accounting_report.xlsx")
 Path to created Excel file
 }
 \description{
-Create a formatted Excel workbook with transaction data.
+Create a German-language workbook with an EÜR-oriented summary and detailed
+transaction schedule. The workbook is supporting documentation and is not
+an official Anlage EÜR.
 }
