@@ -7,7 +7,8 @@
   "main": "electron/main.cjs",
   "scripts": {
     "start": "electron .",
-    "dist:mac": "electron-builder --mac dmg --arm64"
+    "dist:mac": "electron-builder --mac dmg --arm64",
+    "dist:win": "electron-builder --win nsis --x64"
   },
   "devDependencies": {
     "electron": "^45.3.4",

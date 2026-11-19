@@ -73,10 +73,10 @@ per-user application data directory. If `Rscript` is not on `PATH`, set
 
 #### Data Storage and Backups
 
-On macOS, the data directory is normally
-`~/Library/Application Support/Halkhata/`. It contains `accounting.db` and the
-`attachments/` folder. The exact directory is determined by Electron's
-`app.getPath("userData")`.
+The data directory contains `accounting.db` and the `attachments/` folder. It
+is normally `~/Library/Application Support/Halkhata/` on macOS and
+`%APPDATA%\Halkhata\` on Windows. The exact directory is determined by
+Electron's `app.getPath("userData")`.
 
 Back up the entire data directory, not just the database. Time Machine can back
 it up; check that the directory is included. For a manual backup, quit Halkhata
@@ -86,17 +86,37 @@ exports are useful reports, but they are not complete, restorable backups.
 
 ### Build a Standalone Installer
 
-The desktop installer does not bundle R, `halkhata`, or its R dependencies.
-Users must install them separately before launching the app. On an Apple Silicon
-Mac, build a `.dmg` with:
+The installer packages the Electron shell and Shiny app, but does not bundle R,
+the `halkhata` package, or its R dependencies. R is not required to build the
+installer; it must be installed separately, with the packages listed under
+[Install Required Packages](#install-required-packages) and `halkhata`, to run
+the installed app. Ensure `Rscript` is on `PATH`, or configure `RSCRIPT_PATH`
+to point to its executable.
+
+Both installer builds require Node.js 22 and npm. Run the build on the target
+operating system and architecture:
+
+#### macOS (Apple Silicon)
 
 ```sh
+npm ci
 npm run dist:mac
 ```
 
-The macOS DMG contains the app. Windows `.exe` installers are built by the
-**Desktop installers** GitHub Actions workflow on a Windows runner. Workflow
-artifacts contain the installers for both platforms.
+This creates a `.dmg` under `dist/`.
+
+#### Windows (x64)
+
+In PowerShell on a 64-bit Windows machine:
+
+```powershell
+npm ci
+npm run dist:win
+```
+
+This creates an `.exe` installer under `dist/`. The **Desktop installers**
+GitHub Actions workflow also builds both installers on their respective
+platform runners and publishes them as workflow artifacts.
 
 Installers are unsigned, so macOS Gatekeeper and Windows SmartScreen may show
 warnings.
