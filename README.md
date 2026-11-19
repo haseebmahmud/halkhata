@@ -231,5 +231,4 @@ Developed for small business accounting needs.
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of halkhata is to ...
 
